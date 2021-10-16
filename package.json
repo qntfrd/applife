@@ -1,0 +1,27 @@
+{
+  "name": "applife",
+  "version": "0.0.0",
+  "description": "🌱 Handle the lifecyle of your application",
+  "keywords": [
+    "lifecycle",
+    "graceful",
+    "shutdown",
+    "crash",
+    "unhandled exception",
+    "exception"
+  ],
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qntfrd/applife.git"
+  },
+  "author": "qntfrd",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/qntfrd/applife/issues"
+  },
+  "homepage": "https://github.com/qntfrd/applife#readme"
+}
