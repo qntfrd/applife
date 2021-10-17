@@ -1,4 +1,5 @@
 
+import { EventEmitter } from "events";
 type Action<T, K> = (data: T) => Promise<K>
 
 type DependencyGraph<T extends {[ key: string ]: unknown}> = {
@@ -9,13 +10,16 @@ type DependencyGraph<T extends {[ key: string ]: unknown}> = {
     after?: keyof T | Array<keyof T>,
   }
 }
-export default class Applife<T extends {[ key: string ]: unknown }> {
+export default class Applife<T extends {[ key: string ]: unknown }> extends EventEmitter {
   private loaded: Partial<Record<keyof T, T[string]>> = {}
   private up = new Map<keyof T, Promise<T[string]>>()
   private down = new Map<keyof T, Promise<T[string]>>()
   private errors = new Map<keyof T, Error>()
+  private emitter = process
 
-  constructor(private dependencies: DependencyGraph<T>) {}
+  constructor(private dependencies: DependencyGraph<T>) {
+    super()
+  }
 
   private async downDependency(dependencyName: keyof DependencyGraph<T>): Promise<void> {
     const dep = this.dependencies[dependencyName]
@@ -68,9 +72,19 @@ export default class Applife<T extends {[ key: string ]: unknown }> {
 
   async stop(): Promise<void> {
     await Promise.all(Object.keys(this.dependencies).map(dep => this.downDependency(dep)))
+    this.emit("stopped", "stop")
+  }
+
+  private async handleInterupt(signal: string) {
+    await this.stop()
+    this.emit("stopped", signal)
   }
 
   async start(): Promise<T> {
+    ["SIGINT", "SIGTERM", "uncaughtException", "unhandledRejection"].map(signal => {
+      this.emitter.on(signal, () => this.handleInterupt(signal))
+    })
+
     await Promise.all(Object.keys(this.dependencies).map(dep => this.upDependency(dep)))
     if (this.errors.size > 0) {
       const e = new Error("Boot sequence failed")

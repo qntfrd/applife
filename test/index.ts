@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { EventEmitter } from "stream";
 import { isCryptoKey } from "util/types";
 import Applife from "../src"
 
@@ -154,5 +155,40 @@ describe("Applife", () => {
     await app.run()
     expect(sequence).to.deep.equal(["A", "B", "b", "c"])
   })
-  it("The app intercepts shutdowns and gracefully terminates")
+  describe("The app intercepts shutdowns and gracefully terminates", () => {
+    const signals = [
+      "SIGTERM",
+      "SIGINT",
+      "uncaughtException",
+      "unhandledRejection"
+    ]
+
+    for (const signal of signals) {
+      it(`Should gracefully shutdown on ${signal}`, async () => {
+        const sequence: string[] = []
+        const r = returnAfter(sequence)
+
+        const app = new Applife({
+          a: { up: r(0, "A") },
+          b: { needs: "a", up: r(0, "B"), down: r(0, "b") },
+          c: { after: "b", down: r(0, "c") },
+        })
+        // @ts-ignore
+        app.emitter = new EventEmitter()
+        await app.start()
+        // @ts-ignore
+        app.emitter.emit(signal)
+        return new Promise((resolve, reject) => {
+          app.on("stopped", () => {
+            try {
+              expect(sequence).to.deep.equal(["A", "B", "b", "c"])
+              resolve()
+            } catch (e) {
+              reject(e)
+            }
+          })
+        })
+      })
+    }
+  })
 })
