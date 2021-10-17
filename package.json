@@ -1,6 +1,6 @@
 {
   "name": "applife",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "♻️ Handle the lifecyle of your application",
   "keywords": [
     "lifecycle",
@@ -13,6 +13,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
+    "prepublish": "tsc",
     "test": "mocha -r ts-node/register test/**/*.ts",
     "test:cover": "nyc npm test",
     "test:watch": "npm test -- -w --watch-files test/**/*.ts,src/**/*.ts"
