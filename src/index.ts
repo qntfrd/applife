@@ -1,15 +1,21 @@
 
 import { EventEmitter } from "events";
-type Action<T, K> = (data: T) => Promise<K>
 
-type DependencyGraph<T extends {[ key: string ]: unknown}> = {
-  [name: string]: {
+type DependencyGraph<T extends {[ key: string ]: unknown}> = Record<
+  keyof T, {
     needs?: keyof T | Array<keyof T>,
-    up?: Action<T, T[string]>,
-    down?: Action<T, T[string]>,
+    up?: (data: T) => Promise<T[string]>,
+    down?: (data: T) => Promise<T[string]>,
     after?: keyof T | Array<keyof T>,
   }
+>
+
+class ALError extends Error {
+  constructor(message: string, public details: Error[]) {
+    super(message)
+  }
 }
+
 export default class Applife<T extends {[ key: string ]: unknown }> extends EventEmitter {
   private loaded: Partial<Record<keyof T, T[string]>> = {}
   private up = new Map<keyof T, Promise<T[string]>>()
@@ -86,11 +92,8 @@ export default class Applife<T extends {[ key: string ]: unknown }> extends Even
     })
 
     await Promise.all(Object.keys(this.dependencies).map(dep => this.upDependency(dep)))
-    if (this.errors.size > 0) {
-      const e = new Error("Boot sequence failed")
-      ;(e as { details: Error[] } & Error).details = Array.from(this.errors.values())
-      throw e
-    }
+    if (this.errors.size > 0)
+      throw new ALError("Boot sequence failed", Array.from(this.errors.values()))
     return this.loaded as T
   }
 
