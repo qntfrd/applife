@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { isCryptoKey } from "util/types";
 import Applife from "../src"
 
 const returnAfter =
@@ -34,7 +35,7 @@ describe("Applife", () => {
       }
     })
     const now = Date.now()
-    const { a, b, c } = await app.load()
+    const { a, b, c } = await app.start()
     expect(Date.now() - now).to.be.gte(30).and.lte(35)
     expect(callOrder).to.deep.equal(["a", "b", "c"])
     expect(a).to.eql("a")
@@ -50,7 +51,7 @@ describe("Applife", () => {
       c: { up: r(10, "c") },
     })
     const now = Date.now()
-    const { a, b, c } = await app.load()
+    const { a, b, c } = await app.start()
     expect(Date.now() - now).to.be.gte(10).and.lte(15)
     expect(a).to.eql("a")
     expect(b).to.eql("b")
@@ -74,7 +75,7 @@ describe("Applife", () => {
       a: { up: r(10, "a") },
     })
     const now = Date.now()
-    await app.load()
+    await app.start()
     expect(Date.now() - now).to.be.gte(50).lte(55)
     expect(callOrder).to.deep.equal(["a", "b", "c", "d", "e"])
   })
@@ -89,7 +90,7 @@ describe("Applife", () => {
       b: { up: ({ a }) => Promise.resolve(a + 10), needs: "a" },
       c: { up: ({ a, b }) => Promise.resolve(a + b + 100), needs: "b" }
     })
-    const { a, b, c } = await app.load()
+    const { a, b, c } = await app.start()
     expect(a).to.eql(1)
     expect(b).to.eql(11)
     expect(c).to.eql(112)
@@ -117,7 +118,7 @@ describe("Applife", () => {
       f: { needs: "e", up: r(10, "F"), down: r(10, "f") },
     })
     try {
-      await app.load()
+      await app.start()
       return Promise.reject(new Error("Should have thrown"))
     } catch (e) {
       expect(e).to.be.an("Error")
@@ -128,7 +129,30 @@ describe("Applife", () => {
       expect(sequence).to.deep.equal(["A", "B", "C", "a", "E", "D", "d", "b"])
     }
   })
-  it("The app can be started / ended")
-  it("The app can be run")
+  it("The app can be started / ended", async () => {
+    const sequence: string[] = []
+    const r = returnAfter(sequence)
+
+    const app = new Applife({
+      a: { up: r(0, "A") },
+      b: { needs: "a", up: r(0, "B"), down: r(0, "b") },
+      c: { after: "b", down: r(0, "c") },
+    })
+    await app.start()
+      .then(() => app.stop())
+    expect(sequence).to.deep.equal(["A", "B", "b", "c"])
+  })
+  it("The app can be run", async () => {
+    const sequence: string[] = []
+    const r = returnAfter(sequence)
+
+    const app = new Applife({
+      a: { up: r(0, "A") },
+      b: { needs: "a", up: r(0, "B"), down: r(0, "b") },
+      c: { after: "b", down: r(0, "c") }
+    })
+    await app.run()
+    expect(sequence).to.deep.equal(["A", "B", "b", "c"])
+  })
   it("The app intercepts shutdowns and gracefully terminates")
 })

@@ -25,7 +25,10 @@ export default class Applife<T extends {[ key: string ]: unknown }> {
     }
     if (dep.down) {
       // dependency was not started => skip
-      if (!this.up.has(dependencyName)) return Promise.resolve()
+      if (!this.up.has(dependencyName)) {
+        if (this.dependencies[dependencyName].up)
+          return Promise.resolve()
+      }
       else {
         // make sure the dependency was started or errored
         try {
@@ -67,7 +70,7 @@ export default class Applife<T extends {[ key: string ]: unknown }> {
     await Promise.all(Object.keys(this.dependencies).map(dep => this.downDependency(dep)))
   }
 
-  async load(): Promise<T> {
+  async start(): Promise<T> {
     await Promise.all(Object.keys(this.dependencies).map(dep => this.upDependency(dep)))
     if (this.errors.size > 0) {
       const e = new Error("Boot sequence failed")
@@ -75,5 +78,10 @@ export default class Applife<T extends {[ key: string ]: unknown }> {
       throw e
     }
     return this.loaded as T
+  }
+
+  async run(): Promise<void> {
+    await this.start()
+    await this.stop()
   }
 }
