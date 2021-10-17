@@ -7,6 +7,12 @@ const returnAfter =
       () =>
         new Promise<string>(r => setTimeout(() => { arr.push(c); r(c) }, t))
 
+const failAfter =
+  (arr: string[]) =>
+    (t: number, c: string = "") =>
+      () =>
+        new Promise<string>((_, j) => setTimeout(() => { arr.push(c); j(new Error(c)) }, t))
+
 describe("Applife", () => {
   it("Boot sequence can be sequential", async () => {
     type boot = {
@@ -21,7 +27,7 @@ describe("Applife", () => {
         needs: "a",
         up: r(10, "b")
       },
-      a: { up: (): Promise<string> => { console.log("AA") ; return r(10, "a")() } },
+      a: { up: r(10, "a") },
       c: {
         needs: ["a", "b"],
         up: r(10, "c"),
@@ -88,7 +94,40 @@ describe("Applife", () => {
     expect(b).to.eql(11)
     expect(c).to.eql(112)
   })
-  it("If a boot event fails, the app shutdowns")
+  it("If a boot event fails, the app shutdowns", async () => {
+    const sequence: string[] = []
+    const r = returnAfter(sequence)
+    const j = failAfter(sequence)
+
+    /** - boot, x failed, . not run, _ shutdown
+     *  a -  _
+     *  b  -      _
+     *  c  -x
+     *  d  -----__
+     *  e  ---x
+     *  f      .
+     */
+
+    const app = new Applife({
+      a: { up: r(10, "A"), down: r(10, "a") },
+      b: { needs: "a", up: r(10, "B"), down: r(10, "b"), after: ["c", "d"] },
+      c: { needs: "a", up: j(20, "C") },
+      d: { needs: "a", up: r(50, "D"), down: r(20, "d"), after: "f" },
+      e: { needs: "a", up: j(40, "E"), down: r(10, "e") },
+      f: { needs: "e", up: r(10, "F"), down: r(10, "f") },
+    })
+    try {
+      await app.load()
+      return Promise.reject(new Error("Should have thrown"))
+    } catch (e) {
+      expect(e).to.be.an("Error")
+      expect((e as Error).message).to.equal("Boot sequence failed")
+      expect((e as { details: Error[] }).details).to.be.an("array").of.length(2)
+      expect((e as { details: Error[]}).details[0].message).to.equal("C")
+      expect((e as { details: Error[]}).details[1].message).to.equal("E")
+      expect(sequence).to.deep.equal(["A", "B", "C", "a", "E", "D", "d", "b"])
+    }
+  })
   it("The app can be started / ended")
   it("The app can be run")
   it("The app intercepts shutdowns and gracefully terminates")
