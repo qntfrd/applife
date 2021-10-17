@@ -12,7 +12,7 @@ const app = new AL({
   // first load your environment
   config: { up: loadenv },
 
-  // when config is done, open rabbit connection
+  // when config is done, open pg connection
   pg: {
     needs: ["config"], // wait for config to have run
     up: async ({ config }) => { // each steps receive the full context
@@ -31,7 +31,7 @@ const app = new AL({
 
   socket: {
     needs: ["http"],
-    up: ({ http, rabbit }) => new Server(require("http").createServer(http.callback()))
+    up: ({ http, pg }) => new Server(require("http").createServer(http.callback()))
   },
 
   start: {
