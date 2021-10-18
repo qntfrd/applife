@@ -1,0 +1,26 @@
+name: Test
+
+on: [ pull_request ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: setup dependencies
+        run: sudo apt-get install -y jq
+      - name: setup git
+        run: |
+          git config --global user.email "github@forand.fr"
+          git config --global user.name "CI"
+      - name: bump
+        run: |
+          git fetch --all
+          msg=`git log v$(cat package.json | jq -r ".version")... --format=%s | cut -d '(' -f 1 | sort -u`
+          echo $msg | grep -zi "breaking" && yarn version --major --no-git-tag-version || (echo $msg | grep -z "feat" && yarn version --minor --no-git-tag-version || yarn version --patch --no-git-tag-version)
+          echo ">>>" git commit -am "chore(version): bump `cat package.json | jq -r '.version'`"
+          echo '>>>' git tag v`cat package.json | jq -r ".version"`
+          echo '>>>' git push tag
