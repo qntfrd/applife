@@ -1,6 +1,6 @@
 {
   "name": "applife",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "description": "♻️ Handle the lifecyle of your application",
   "keywords": [
     "lifecycle",
