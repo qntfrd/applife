@@ -11,6 +11,7 @@ type DependencyGraph<T extends {[ key: string ]: unknown}> = Record<
 >
 
 class ALError extends Error {
+  /* istanbul ignore next - I don't know what happens but `super(message)` is not covered */
   constructor(message: string, public details: Error[]) {
     super(message)
   }
