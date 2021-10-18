@@ -2,6 +2,7 @@
 
 ♻️ Handle the lifecyle of your application
 
+[![codecov](https://codecov.io/gh/qntfrd/applife/branch/main/graph/badge.svg?token=mRxtORoSO3)](https://codecov.io/gh/qntfrd/applife)
 
 ## Getting started
 
