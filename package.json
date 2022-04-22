@@ -30,10 +30,10 @@
   "homepage": "https://github.com/qntfrd/applife#readme",
   "devDependencies": {
     "@types/chai": "4.2.22",
-    "@types/mocha": "9.0.0",
+    "@types/mocha": "9.1.1",
     "@types/node": "16.11.27",
     "chai": "4.3.4",
-    "mocha": "9.1.3",
+    "mocha": "9.2.2",
     "nyc": "15.1.0",
     "ts-node": "10.7.0",
     "typescript": "4.4.4"
