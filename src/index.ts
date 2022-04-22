@@ -79,6 +79,8 @@ export default class Applife<T extends {[ key: string ]: unknown }> extends Even
 
   async stop(): Promise<void> {
     await Promise.all(Object.keys(this.dependencies).map(dep => this.downDependency(dep)))
+    this.up.clear()
+    this.down.clear()
     this.emit("stopped", "stop")
   }
 

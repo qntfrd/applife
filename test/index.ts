@@ -143,6 +143,20 @@ describe("Applife", () => {
       .then(() => app.stop())
     expect(sequence).to.deep.equal(["A", "B", "b", "c"])
   })
+  it("If the app is started then stopped, it can be restarted", async () => {
+    let intermediateStep = 0
+
+    const app = new Applife({
+      step: {
+        up: () => Promise.resolve(intermediateStep++),
+      }
+    })
+    await app.start()
+    expect(intermediateStep).to.equal(1)
+    await app.stop()
+    await app.start()
+    expect(intermediateStep).to.equal(2)
+  })
   it("The app can be run", async () => {
     const sequence: string[] = []
     const r = returnAfter(sequence)
