@@ -169,6 +169,20 @@ describe("Applife", () => {
     await app.run()
     expect(sequence).to.deep.equal(["A", "B", "b", "c"])
   })
+
+  it("Once a dependency is up, it can be accessed from the built app", async () => {
+    const app = new Applife({
+      a: { up: () => Promise.resolve(1) },
+      b: { needs: "a", up: () => Promise.resolve(2) },
+      c: { needs: "a", up: () => Promise.resolve(3) },
+    })
+    await app.start()
+    expect(app.dependencies.a).to.eql(1)
+    expect(app.dependencies.b).to.eql(2)
+    expect(app.dependencies.c).to.eql(3)
+    await app.stop()
+  })
+
   describe("The app intercepts shutdowns and gracefully terminates", () => {
     const signals = [
       "SIGTERM",

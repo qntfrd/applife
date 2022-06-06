@@ -17,19 +17,21 @@ class ALError extends Error {
   }
 }
 
-export default class Applife<T extends {[ key: string ]: unknown }> extends EventEmitter {
+export default class Applife<T extends Record<string, any>> extends EventEmitter {
   private loaded: Partial<Record<keyof T, T[string]>> = {}
   private up = new Map<keyof T, Promise<T[string]>>()
   private down = new Map<keyof T, Promise<T[string]>>()
   private errors = new Map<keyof T, Error>()
   private emitter = process
+  readonly dependencies: T
 
-  constructor(private dependencies: DependencyGraph<T>) {
+  constructor(readonly dependencyGraph: DependencyGraph<T>) {
     super()
+    this.dependencies = this.loaded as Required<T>
   }
 
   private async downDependency(dependencyName: keyof DependencyGraph<T>): Promise<void> {
-    const dep = this.dependencies[dependencyName]
+    const dep = this.dependencyGraph[dependencyName]
     if (dep.after) {
       const after: Array<keyof T> = Array.isArray(dep.after) ? [...dep.after] : [dep.after]
       await Promise.all(after.map((d: keyof T) => this.downDependency(d as any)))
@@ -37,7 +39,7 @@ export default class Applife<T extends {[ key: string ]: unknown }> extends Even
     if (dep.down) {
       // dependency was not started => skip
       if (!this.up.has(dependencyName)) {
-        if (this.dependencies[dependencyName].up)
+        if (this.dependencyGraph[dependencyName].up)
           return Promise.resolve()
       }
       else {
@@ -56,7 +58,7 @@ export default class Applife<T extends {[ key: string ]: unknown }> extends Even
   }
 
   private async upDependency(dependencyName: keyof DependencyGraph<T>): Promise<T[string] | undefined> {
-    const dep = this.dependencies[dependencyName]
+    const dep = this.dependencyGraph[dependencyName]
     if (dep.needs) {
       const needs: Array<keyof T> = Array.isArray(dep.needs) ? [...dep.needs] : [dep.needs]
       await Promise.all(needs.map((d: keyof T) => this.upDependency(d as any)))
@@ -78,7 +80,7 @@ export default class Applife<T extends {[ key: string ]: unknown }> extends Even
   }
 
   async stop(): Promise<void> {
-    await Promise.all(Object.keys(this.dependencies).map(dep => this.downDependency(dep)))
+    await Promise.all(Object.keys(this.dependencyGraph).map(dep => this.downDependency(dep)))
     this.up.clear()
     this.down.clear()
     this.emit("stopped", "stop")
@@ -94,7 +96,7 @@ export default class Applife<T extends {[ key: string ]: unknown }> extends Even
       this.emitter.on(signal, () => this.handleInterupt(signal))
     })
 
-    await Promise.all(Object.keys(this.dependencies).map(dep => this.upDependency(dep)))
+    await Promise.all(Object.keys(this.dependencyGraph).map(dep => this.upDependency(dep)))
     if (this.errors.size > 0)
       throw new ALError("Boot sequence failed", Array.from(this.errors.values()))
     return this.loaded as T
